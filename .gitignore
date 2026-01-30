@@ -1,6 +1,6 @@
 # Python
-.cache/
-.ipynb_checkpoints/
+**/.cache/
+**/.ipynb_checkpoints/
 __pycache__/
 *.py[cod]
 *.pyo
