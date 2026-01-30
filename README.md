@@ -32,3 +32,21 @@ def make_fileset(target: Fileset, deps: Deps, out: Path) -> None:
     ...
     out.write_text(...)
 ```
+`target` is the artifact instance (has keys like dataset/era/n_parts/etc.)\
+`deps.need(other_artifact)` triggers building dependencies and returns the dependency’s path on disk\
+`out` is the output path assigned by the executor for target
+
+### Executor
+
+The Executor:
+
+1. Computes the artifact’s identity()
+2. Maps identity → a cache path on disk
+3. If cached: returns the path
+4. Otherwise: calls the registered producer, writing the output
+5. Returns the path
+
+As a result, we have:
+- implicit DAG from Python
+- automatic caching
+- the foundation for resumability and reproducibility
