@@ -1,7 +1,7 @@
 from pathlib import Path
 from coffea_workflow_engine.executor import Executor
 from coffea_workflow_engine.artifacts import Fileset, Partition
-import coffea_workflow_engine.default_producers  # ensure producers registered
+import coffea_workflow_engine.default_producers
 
 ex = Executor(cache_dir=Path(".cache"))
 fs = Fileset(dataset="TTbar", era="2018")

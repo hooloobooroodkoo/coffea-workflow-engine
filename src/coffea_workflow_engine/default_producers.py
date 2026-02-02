@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Dict, List
 
-from .artifacts import Fileset, Partition
+from .artifacts import Fileset, Partition, MergedResult
 from .producers import producer
 
 
@@ -86,3 +86,14 @@ def make_partition(*, target: Partition, deps, out: Path) -> None:
         ],
     }
     out.write_text(json.dumps(manifest, indent=2))
+
+@producer(MergedResult)
+def make_merged(target: MergedResult, deps: Deps, out: Path) -> None:
+    
+    chunk_paths = []
+    for chunk_id in range(10):
+        cr = ChunkResult(dataset=target.dataset, era=target.era, chunk_id=chunk_id)
+        chunk_paths.append(deps.need(cr))
+
+    
+    out.write_bytes(b"...")
