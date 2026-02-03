@@ -27,3 +27,4 @@ step_partition = workflow.add(
 
 config = cfg.Config(renderer="local", cache_dir=".cache")
 local_root_task = rnd.render(workflow, config)
+print("Successfully rendered workflow!")

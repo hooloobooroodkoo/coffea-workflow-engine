@@ -15,7 +15,19 @@ def artifact_from_dict(d: dict) -> Artifact:
         cls = ARTIFACT_REGISTRY[t]
     except KeyError as e:
         raise ValueError(f"Unknown artifact type: {t}") from e
-    return cls(**d["key"])
+    key = d.get("key", None)
+    if key is None:
+        key = d.get("keys", None)
+    if key is None:
+        raise ValueError("Artifact dict must include 'key' or 'keys'")
+
+    resolved: dict[str, Any] = {}
+    for k, v in key.items():
+        if isinstance(v, dict) and "type" in v and ("key" in v or "keys" in v):
+            resolved[k] = artifact_from_dict(v)
+        else:
+            resolved[k] = v
+    return cls(**resolved)
     
 @runtime_checkable
 class Artifact(Protocol):
