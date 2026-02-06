@@ -6,13 +6,46 @@ Instead of describing a workflow DAG as a YAML graph of steps, it **requests a t
 
 ## Concept
 
+### Workflow
+A DAG builder user can use it for structuring the analysis.
+A workflow is a list of Steps plus dependency edges:
+- A Step names what to build (step_type) and with which parameters (params)
+- Dependencies define the execution order (and allow referencing earlier step outputs)
+- *Idea*: to keep the engine core backend-neutral, and make adding Luigi/Snakemake/Law/CWL later much easier via implementing different renders (right now only local_render is available). More in issue #1.
+```python
+from coffea_workflow_engine.workflow.workflow import Workflow, Step
+from coffea_workflow_engine.workflow.config import Config
+from coffea_workflow_engine.workflow.render import render
+
+# 1) Build the workflow (steps + dependencies)
+workflow = Workflow()
+# ... add Steps ...
+step_fileset = workflow.add(
+    Step(
+        name="fileset",
+        step_type=Fileset,
+        params={...})
+    )
+
+# 2) Choose how to run it
+config = Config(
+    renderer="local",   # currently supported: "local", next to add "luigi"
+    cache_dir=".cache", # where artifact payloads are stored
+)
+
+# 3) Render (execute) the workflow
+result = render(workflow, config)
+
+# result contains step -> paths/artifacts and execution order (renderer-dependent)
+```
+
 ### Artifacts
 An **Artifact** is a typed description of an output that can be materialized to disk.
 
 For example:
 - `Fileset(...)` – resolved list/map of input files
-- `Partition(fileset=..., n_parts=...)` – partition manifest
-- `ChunkResult(partition=..., chunk_id=...)` – partial Coffea output
+- `Chunking(fileset=..., n_parts=...)` – partition manifest
+- `ChunkAnalysis(chunking=..., chunk_id=...)` – partial Coffea output
 - `MergedResult(...)` – merged output from all chunks
 - `Plots(...)` – rendered plots
 
@@ -50,3 +83,19 @@ As a result, we have:
 - implicit DAG from Python
 - automatic caching
 - the foundation for resumability and reproducibility
+
+### Run example
+
+```bash
+git clone https://github.com/hooloobooroodkoo/coffea-workflow-engine.git
+cd coffea-workflow-engine
+
+# develop / editable install
+SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0 python -m pip install -e .
+
+# run the demo
+cd src/coffea_workflow_engine/example
+python test_workflow_run.py
+```
+![](docs/workflow_example_1.png)
+![](docs/workflow_example_2.png)
