@@ -1,0 +1,135 @@
+{
+  "ttbar__nominal": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-pythia8/cmsopendata2015_ttbar_19980_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-pythia8/cmsopendata2015_ttbar_19980_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-pythia8/cmsopendata2015_ttbar_19980_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0002.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-pythia8/cmsopendata2015_ttbar_19980_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0003.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-pythia8/cmsopendata2015_ttbar_19980_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0004.root"
+    ],
+    "metadata": {
+      "process": "ttbar",
+      "variation": "nominal",
+      "nevts": 6389801,
+      "xsec": 729.84
+    }
+  },
+  "ttbar__scaledown": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaledown-pythia8/cmsopendata2015_ttbar_19983_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaledown-pythia8/cmsopendata2015_ttbar_19983_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaledown-pythia8/cmsopendata2015_ttbar_19983_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0002.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaledown-pythia8/cmsopendata2015_ttbar_19983_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0003.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaledown-pythia8/cmsopendata2015_ttbar_19983_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_00000_0004.root"
+    ],
+    "metadata": {
+      "process": "ttbar",
+      "variation": "scaledown",
+      "nevts": 6527925,
+      "xsec": 729.84
+    }
+  },
+  "ttbar__scaleup": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaleup-pythia8/cmsopendata2015_ttbar_19985_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_10000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaleup-pythia8/cmsopendata2015_ttbar_19985_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_10000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaleup-pythia8/cmsopendata2015_ttbar_19985_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_10000_0002.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaleup-pythia8/cmsopendata2015_ttbar_19985_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_10000_0003.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-powheg-scaleup-pythia8/cmsopendata2015_ttbar_19985_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext3-v1_10000_0004.root"
+    ],
+    "metadata": {
+      "process": "ttbar",
+      "variation": "scaleup",
+      "nevts": 6282650,
+      "xsec": 729.84
+    }
+  },
+  "ttbar__ME_var": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-amcatnlo-pythia8/cmsopendata2015_ttbar_19978_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext1-v1_60000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-amcatnlo-pythia8/cmsopendata2015_ttbar_19978_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext1-v1_60000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-amcatnlo-pythia8/cmsopendata2015_ttbar_19978_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext1-v1_60000_0002.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-amcatnlo-pythia8/cmsopendata2015_ttbar_19978_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext1-v1_60000_0003.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneCUETP8M1_13TeV-amcatnlo-pythia8/cmsopendata2015_ttbar_19978_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext1-v1_60000_0004.root"
+    ],
+    "metadata": {
+      "process": "ttbar",
+      "variation": "ME_var",
+      "nevts": 5482617,
+      "xsec": 729.84
+    }
+  },
+  "ttbar__PS_var": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneEE5C_13TeV-powheg-herwigpp/cmsopendata2015_ttbar_19999_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_10000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneEE5C_13TeV-powheg-herwigpp/cmsopendata2015_ttbar_19999_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_10000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneEE5C_13TeV-powheg-herwigpp/cmsopendata2015_ttbar_19999_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_10000_0002.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneEE5C_13TeV-powheg-herwigpp/cmsopendata2015_ttbar_19999_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_10000_0003.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/TT_TuneEE5C_13TeV-powheg-herwigpp/cmsopendata2015_ttbar_19999_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_10000_0004.root"
+    ],
+    "metadata": {
+      "process": "ttbar",
+      "variation": "PS_var",
+      "nevts": 6527901,
+      "xsec": 729.84
+    }
+  },
+  "single_top_s_chan__nominal": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_s-channel_4f_InclusiveDecays_13TeV-amcatnlo-pythia8/cmsopendata2015_single_top_s_chan_19394_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_s-channel_4f_InclusiveDecays_13TeV-amcatnlo-pythia8/cmsopendata2015_single_top_s_chan_19394_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_s-channel_4f_InclusiveDecays_13TeV-amcatnlo-pythia8/cmsopendata2015_single_top_s_chan_19394_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_50000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_s-channel_4f_InclusiveDecays_13TeV-amcatnlo-pythia8/cmsopendata2015_single_top_s_chan_19394_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_50000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_s-channel_4f_InclusiveDecays_13TeV-amcatnlo-pythia8/cmsopendata2015_single_top_s_chan_19394_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_60000_0000.root"
+    ],
+    "metadata": {
+      "process": "single_top_s_chan",
+      "variation": "nominal",
+      "nevts": 2751999,
+      "xsec": 3.2944000000000004
+    }
+  },
+  "single_top_t_chan__nominal": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_t_chan_19408_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_t_chan_19408_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_t_chan_19408_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0002.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_t_chan_19408_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0003.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_t-channel_top_4f_inclusiveDecays_13TeV-powhegV2-madspin-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_t_chan_19408_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0004.root"
+    ],
+    "metadata": {
+      "process": "single_top_t_chan",
+      "variation": "nominal",
+      "nevts": 6120908,
+      "xsec": 234.7936507936508
+    }
+  },
+  "single_top_tW__nominal": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_tW_antitop_5f_inclusiveDecays_13TeV-powheg-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_tW_19412_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_00000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_tW_antitop_5f_inclusiveDecays_13TeV-powheg-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_tW_19412_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_20000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/ST_tW_top_5f_inclusiveDecays_13TeV-powheg-pythia8_TuneCUETP8M1/cmsopendata2015_single_top_tW_19419_PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1_70000_0000.root"
+    ],
+    "metadata": {
+      "process": "single_top_tW",
+      "variation": "nominal",
+      "nevts": 1999400,
+      "xsec": 75.842
+    }
+  },
+  "wjets__nominal": {
+    "files": [
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/cmsopendata2015_wjets_20547_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext2-v1_10000_0000.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/cmsopendata2015_wjets_20547_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext2-v1_10000_0001.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/cmsopendata2015_wjets_20547_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext2-v1_10000_0002.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/cmsopendata2015_wjets_20547_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext2-v1_10000_0003.root",
+      "https://xrootd-local.unl.edu:1094//store/user/AGC/nanoAOD/WJetsToLNu_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/cmsopendata2015_wjets_20547_PU25nsData2015v1_76X_mcRun2_asymptotic_v12_ext2-v1_10000_0004.root"
+    ],
+    "metadata": {
+      "process": "wjets",
+      "variation": "nominal",
+      "nevts": 5913030,
+      "xsec": 15487.164
+    }
+  }
+}
