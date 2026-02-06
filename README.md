@@ -33,7 +33,7 @@ config = Config(
     cache_dir=".cache", # where artifact payloads are stored
 )
 
-# 3) Render (execute) the workflow
+# 3) Execute the workflow
 result = render(workflow, config)
 
 # result contains step -> paths/artifacts and execution order (renderer-dependent)
