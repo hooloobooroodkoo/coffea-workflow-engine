@@ -1,15 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, List, Sequence, Tuple, Type
 
 @dataclass(frozen=True)
 class Step:
     name: str
-    target_type: Type 
+    step_type: Type 
     params: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "target_type": self.target_type.__name__, "params": self.params}
+        return {"name": self.name, "step_type": self.step_type.__name__, "params": self.params}
 
 @dataclass
 class Workflow:

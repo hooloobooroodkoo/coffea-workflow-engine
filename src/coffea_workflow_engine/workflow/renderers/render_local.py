@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List
 from ...artifacts import Artifact, artifact_from_dict
 from ...executor import Executor
 from ..config import Config
-from ..model import Workflow
+from ..workflow import Workflow
 
 
 import coffea_workflow_engine.default_producers
@@ -61,7 +61,7 @@ def _print_dag(workflow: Workflow) -> None:
         return
     for idx, step in enumerate(workflow.steps):
         print(
-            f"  [{idx}] {step.name} -> {step.target_type.__name__} params={step.params}"
+            f"  [{idx}] {step.name} -> {step.step_type.__name__} params={step.params}"
         )
     if workflow.edges:
         print("Edges:")
@@ -87,7 +87,7 @@ def render_local(workflow: Workflow, config: Config) -> Dict[str, Any]:
     for idx in order:
         step = workflow.steps[idx]
         params = _resolve_params(step.params, artifacts_by_name)
-        artifact = step.target_type(**params)
+        artifact = step.step_type(**params)
         print(
             f"Executing step '{step.name}': "
             f"{artifact.type_name} params={artifact.keys()}"

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Mapping, Protocol, runtime_checkable
 from .identity import hash_identity
 
@@ -65,7 +65,7 @@ class Fileset(ArtifactBase):
 
 @register_artifact
 @dataclass(frozen=True)
-class Partition(ArtifactBase):
+class Chunking(ArtifactBase):
     fileset: Fileset
     n_parts: int
     strategy: str = "simple"  # think of strategies and how to reconcile them with n_parts
@@ -73,23 +73,30 @@ class Partition(ArtifactBase):
     def keys(self) -> Mapping[str, Any]:
         return {"fileset": self.fileset.keys(), "n_parts": self.n_parts, "strategy": self.strategy}
 
-
-
 @register_artifact
 @dataclass(frozen=True)
-class ChunkResult(ArtifactBase):
-    fileset: Fileset
+class ChunkAnalysis(ArtifactBase):
+    chunk: "Chunking"
     part: int
     chunk_size: int
-    tag: str # we need to preserve the processor/runner code itself
-    
+    tag: str
+    processor: str
+    processor_params: Dict[str, Any] = field(default_factory=dict)
+    treename: str = "Events"
+    executor: str = "futures"
+    executor_params: Dict[str, Any] = field(default_factory=dict)
 
     def keys(self) -> Mapping[str, Any]:
         return {
-            "fileset": self.fileset.keys(),
+            "chunk": self.chunk.keys(),
             "part": self.part,
             "chunk_size": self.chunk_size,
             "tag": self.tag,
+            "processor": self.processor,
+            "processor_params": self.processor_params,
+            "treename": self.treename,
+            "executor": self.executor,
+            "executor_params": self.executor_params,
         }
 
 
@@ -101,6 +108,21 @@ class MergedResult(ArtifactBase):
 
     def keys(self) -> Mapping[str, Any]:
         return {"fileset": self.fileset.keys(), "tag": self.tag}
+
+
+@register_artifact
+@dataclass(frozen=True)
+class Plots(ArtifactBase):
+    source: ArtifactBase
+    plotter: str
+    plotter_params: Dict[str, Any] = field(default_factory=dict)
+
+    def keys(self) -> Mapping[str, Any]:
+        return {
+            "source": self.source.keys(),
+            "plotter": self.plotter,
+            "plotter_params": self.plotter_params,
+        }
 
 
 @register_artifact

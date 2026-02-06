@@ -1,6 +1,6 @@
 from typing import Any
 from .config import Config
-from .model import Workflow
+from .workflow import Workflow
 from .renderers.render_local import render_local
 # from .renderers.luigi import render_luigi
 

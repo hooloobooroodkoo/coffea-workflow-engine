@@ -5,8 +5,12 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, List, Any
+import importlib
+import inspect
 
-from .artifacts import Fileset, Partition, ChunkResult, MergedResult, Plots
+import cloudpickle
+
+from .artifacts import Fileset, Chunking, ChunkAnalysis, MergedResult, Plots
 from .deps import Deps
 from .producers import producer
 
@@ -63,10 +67,10 @@ def make_fileset(*, target: Fileset, deps, out: Path) -> None:
     out.write_text(json.dumps(payload, indent=2))
 
 
-@producer(Partition)
-def make_partition(*, target: Partition, deps, out: Path) -> None:
+@producer(Chunking)
+def make_partition(*, target: Chunking, deps, out: Path) -> None:
     """
-    Partition a Fileset manifest into N parts and write partition manifest.
+    Chunks a Fileset manifest into N parts and write partition manifest.
     """
     fileset_path = deps.need(target.fileset)
     fileset = json.loads(fileset_path.read_text())
@@ -95,43 +99,137 @@ def make_partition(*, target: Partition, deps, out: Path) -> None:
     }
     out.write_text(json.dumps(manifest, indent=2))
 
-@producer(ChunkResult)
-def make_chunk_result(*, target: ChunkResult, deps: Deps, out: Path) -> None:
-    """
-    Create a chunk manifest based on a Fileset and chunk_size.
-    """
-    fileset_path = deps.need(target.fileset)
-    fileset = json.loads(fileset_path.read_text())
-
-    files = fileset["files"]
-    chunk_size = target.chunk_size
-    if chunk_size <= 0:
-        raise ValueError("chunk_size must be > 0")
-
-    chunks = [files[i:i + chunk_size] for i in range(0, len(files), chunk_size)]
-    if target.part < 0 or target.part >= len(chunks):
-        raise IndexError(f"Chunk part {target.part} out of range for {len(chunks)} chunks")
-
-    payload = {
-        "dataset": fileset["dataset"],
-        "era": fileset["era"],
-        "tag": target.tag,
-        "part": target.part,
-        "chunk_size": chunk_size,
-        "files": chunks[target.part],
+def _fileset_from_list_payload(fileset_payload: Dict[str, Any], files: List[str]) -> Dict[str, Any]:
+    return {
+        f"{fileset_payload['dataset']}__{fileset_payload['era']}": {
+            "files": files,
+            "metadata": {
+                "dataset_name": fileset_payload["dataset"],
+                "era": fileset_payload["era"],
+            },
+        }
     }
-    out.write_text(json.dumps(payload, indent=2))
+
+def _load_object(path: str) -> Any:
+    """
+    Initiate an object
+    """
+    if ":" in path:
+        mod_name, attr = path.split(":", 1)
+    else:
+        mod_name, attr = path.rsplit(".", 1)
+    module = importlib.import_module(mod_name)
+    try:
+        return getattr(module, attr)
+    except AttributeError as e:
+        raise AttributeError(f"Object '{attr}' not found in module '{mod_name}'") from e
+
+def _resolve_executor(executor: Optional[str], executor_params: Dict[str, Any]):
+    """
+    TODO: implement support of  other executors. 
+    """
+    if executor not in (None, "futures"):
+        raise ValueError(
+            f"Only executor='futures' is supported (got {executor!r})."
+        )
+
+    from coffea.processor.executor import FuturesExecutor
+
+    workers = int(executor_params.get("workers", 1))
+    try:
+        return FuturesExecutor(workers=workers)
+    except TypeError:
+        return FuturesExecutor(max_workers=workers)
+    
+@producer(ChunkAnalysis)
+def make_chunk_analysis(*, target: ChunkAnalysis, deps: Deps, out: Path) -> None:
+    """
+    Runs a Coffea processor on one partition from a Chunking manifest.
+
+    Expects ChunkAnalysis to carry:
+      - chunking: Chunking
+      - part: int
+      - tag: str (optional but recommended)
+      - processor: str|callable|instance
+      - processor_params: dict
+      - executor: str|callable|...
+      - executor_params: dict
+      - treename: str
+    """
+    from coffea.nanoevents import NanoAODSchema
+    from coffea.processor.executor import Runner
+    from coffea.processor import ProcessorABC
+
+    chunk_path = deps.need(target.chunk)
+    chunk_payload = json.loads(chunk_path.read_text())
+    files = chunk_payload.get("files", [])
+    if not isinstance(files, list) or not files:
+        raise ValueError("ChunkAnalysis requires Chunking with non-empty 'files'")
+
+    fileset = _fileset_from_list_payload(chunk_payload, files)
+    processor_obj = _load_object(target.processor) if isinstance(target.processor, str) else target.processor
+    
+    if isinstance(processor_obj, ProcessorABC):
+        processor_instance = processor_obj
+    elif inspect.isclass(processor_obj) or callable(processor_obj):
+        processor_instance = _call_with_accepted_kwargs(processor_obj, target.processor_params)
+    else:
+        raise TypeError("processor must be a ProcessorABC instance, class, or factory")
+
+    executor_params = {
+        "schema": NanoAODSchema,
+        **(target.executor_params or {}),
+    }
+    schema = executor_params.get("schema")
+    if isinstance(schema, str):
+        executor_params["schema"] = _load_object(schema)
+
+    executor = _resolve_executor(target.executor, executor_params)
+    runner = Runner(
+        executor=executor,
+        schema=executor_params.get("schema", NanoAODSchema),
+        chunksize=executor_params.get("chunksize", 200_000),
+        savemetrics=executor_params.get("savemetrics", True),
+        metadata_cache=executor_params.get("metadata_cache", {}),
+    )
+
+    output = runner(
+        fileset=fileset,
+        treename=target.treename,
+        processor_instance=processor_instance,
+    )
+
+    if isinstance(output, tuple) and len(output) >= 1:
+        output = output[0]
+
+    payload_path = out.parent / "payload.pkl"
+    with payload_path.open("wb") as f:
+        cloudpickle.dump(output, f)
+
+    summary = {"nevents": output.get("nevents")} if isinstance(output, dict) else {}
+    out.write_text(
+        json.dumps(
+            {
+                "payload": payload_path.name,
+                "summary": summary,
+                "chunk_files": files,
+                "parameters": target.keys(),
+            },
+            indent=2,
+        )
+    )
 
 
-def _scan_chunk_results(cache_root: Path, dataset: str, era: str, tag: str) -> List[Dict[str, Any]]:
-    chunk_dir = cache_root / "ChunkResult"
+
+def _scan_chunk_results(cache_root: Path, dataset: str, era: str, tag: str | None) -> List[Path]:
+    chunk_dir = cache_root / "ChunkAnalysis"
     if not chunk_dir.exists():
         return []
 
-    results: List[Dict[str, Any]] = []
-    for payload_path in chunk_dir.rglob("payload.json"):
+    results: List[Path] = []
+    for result_path in chunk_dir.rglob("payload.json"):
         try:
-            payload = json.loads(payload_path.read_text())
+            payload = json.loads(result_path.read_text())
         except json.JSONDecodeError:
             continue
         if (
@@ -146,25 +244,69 @@ def _scan_chunk_results(cache_root: Path, dataset: str, era: str, tag: str) -> L
 @producer(MergedResult)
 def make_merged_result(*, target: MergedResult, deps: Deps, out: Path) -> None:
     """
-    Merge available ChunkResult manifests for the same dataset/era/tag, if present.
+    Merge available ChunkAnalysis outputs for the same dataset/era/(tag), if present.
+
+    This implementation:
+      - scans cache for ChunkAnalysis manifests
+      - loads each payload.pkl
+      - merges outputs (accumulate-style) if possible
+      - writes merged payload.pkl + merged manifest json
     """
+    fileset_path = deps.need(target.fileset)
+    fileset_payload = json.loads(fileset_path.read_text())
+
+    dataset = fileset_payload["dataset"]
+    era = fileset_payload["era"]
+    tag = getattr(target, "tag", None)
+
+    
     cache_root = out.parents[2]
-    chunks = _scan_chunk_results(cache_root, target.fileset.dataset, target.fileset.era, target.tag)
+    
+    analysis_manifests = _scan_chunk_results(cache_root, dataset, era, tag)
 
-    merged_files: List[str] = []
-    for chunk in chunks:
-        merged_files.extend(chunk.get("files", []))
+    outputs: List[Any] = []
+    used_parts: List[int] = []
+    for manifest_path in analysis_manifests:
+        manifest = json.loads(manifest_path.read_text())
+        payload_name = manifest.get("payload", "payload.pkl")
+        payload_path = manifest_path.parent / payload_name
+        if not payload_path.exists():
+            continue
 
-    payload = {
-        "dataset": target.fileset.dataset,
-        "era": target.fileset.era,
-        "tag": target.tag,
-        "n_chunks": len(chunks),
-        "n_files": len(merged_files),
-        "files": merged_files,
-    }
-    out.write_text(json.dumps(payload, indent=2))
+        with payload_path.open("rb") as f:
+            outputs.append(cloudpickle.load(f))
 
+        if isinstance(manifest.get("part"), int):
+            used_parts.append(manifest["part"])
+
+    merged_output: Any = None
+    if outputs:
+        try:
+            from coffea.processor.accumulator import accumulate
+            merged_output = accumulate(outputs)
+        except Exception:
+            merged_output = outputs
+
+    merged_payload_path = out.parent / "payload.pkl"
+    with merged_payload_path.open("wb") as f:
+        cloudpickle.dump(merged_output, f)
+
+    out.write_text(
+        json.dumps(
+            {
+                "type": "MergedResult",
+                "dataset": dataset,
+                "era": era,
+                "tag": tag,
+                "n_parts": len(set(used_parts)) if used_parts else 0,
+                "parts": sorted(set(used_parts)) if used_parts else [],
+                "n_inputs": len(outputs),
+                "payload": merged_payload_path.name,
+                "parameters": target.keys(),
+            },
+            indent=2,
+        )
+    )
 
 @producer(Plots)
 def make_plots(*, target: Plots, deps: Deps, out: Path) -> None:
