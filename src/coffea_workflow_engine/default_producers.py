@@ -47,22 +47,29 @@ def _load_fileset_source() -> Dict[str, List[str]]:
 
 
 @producer(Fileset)
-def make_fileset(*, target: Fileset, deps, out: Path) -> None:
-    """
-    Writes a fileset manifest to `out`.
-    """
-    source = _load_fileset_source()
-    key = f"{target.dataset}:{target.era}"
-    files = source.get(key)
-    if files is None:
-        raise KeyError(f"Dataset key '{key}' not found in fileset source JSON")
-    if not isinstance(files, list):
-        raise TypeError(f"Fileset entry for '{key}' must be a list")
+def make_fileset(*, target: Fileset, deps: Deps, out: Path) -> None:
+    
+    fn = _load_object(target.builder) # call the function that user created
+    fileset_dict = fn(**(target.builder_params or {}))
+
+    if not isinstance(fileset_dict, dict):
+        raise TypeError("Fileset builder must return a dict")
+
+    if target.dataset not in fileset_dict:
+        raise KeyError(f"Dataset key '{target.dataset}' not in fileset builder result. "
+                       f"Available keys: {list(fileset_dict)[:10]}...")
+
+    entry = fileset_dict[target.dataset]
+    if not isinstance(entry, dict) or "files" not in entry:
+        raise TypeError(f"Fileset entry for '{target.dataset}' must be a dict with 'files'")
 
     payload = {
         "dataset": target.dataset,
         "era": target.era,
-        "files": files,
+        "files": entry["files"],
+        "metadata": entry.get("metadata", {}),
+        "builder": target.builder,
+        "builder_params": target.builder_params,
     }
     out.write_text(json.dumps(payload, indent=2))
 
@@ -140,33 +147,44 @@ def _resolve_executor(executor: Optional[str], executor_params: Dict[str, Any]):
         return FuturesExecutor(workers=workers)
     except TypeError:
         return FuturesExecutor(max_workers=workers)
+
+def _call_with_accepted_kwargs(fn, kwargs: Dict[str, Any]):
+    sig = inspect.signature(fn)
+    params = sig.parameters
+    accepts_kwargs = any(p.kind == p.VAR_KEYWORD for p in params.values())
+    if accepts_kwargs:
+        return fn(**kwargs)
+    filtered = {k: v for k, v in kwargs.items() if k in params}
+    return fn(**filtered)
     
 @producer(ChunkAnalysis)
 def make_chunk_analysis(*, target: ChunkAnalysis, deps: Deps, out: Path) -> None:
     """
     Runs a Coffea processor on one partition from a Chunking manifest.
-
-    Expects ChunkAnalysis to carry:
-      - chunking: Chunking
-      - part: int
-      - tag: str (optional but recommended)
-      - processor: str|callable|instance
-      - processor_params: dict
-      - executor: str|callable|...
-      - executor_params: dict
-      - treename: str
     """
     from coffea.nanoevents import NanoAODSchema
     from coffea.processor.executor import Runner
     from coffea.processor import ProcessorABC
 
-    chunk_path = deps.need(target.chunk)
-    chunk_payload = json.loads(chunk_path.read_text())
-    files = chunk_payload.get("files", [])
+    chunking_path = deps.need(target.chunk)
+    chunking_payload = json.loads(chunking_path.read_text())
+    
+    parts = chunking_payload.get("parts", [])
+    if not isinstance(parts, list) or not parts:
+        raise ValueError("ChunkAnalysis requires Chunking with non-empty 'parts'")
+    
+    part_entry = next(
+        (p for p in parts if isinstance(p, dict) and p.get("part") == target.part),
+        None,
+    )
+    if part_entry is None:
+        raise IndexError(f"ChunkAnalysis part={target.part} not found in Chunking manifest")
+    
+    files = part_entry.get("files", [])
     if not isinstance(files, list) or not files:
-        raise ValueError("ChunkAnalysis requires Chunking with non-empty 'files'")
+        raise ValueError(f"ChunkAnalysis part={target.part} has empty 'files'")
 
-    fileset = _fileset_from_list_payload(chunk_payload, files)
+    fileset = _fileset_from_list_payload(chunking_payload, files)
     processor_obj = _load_object(target.processor) if isinstance(target.processor, str) else target.processor
     
     if isinstance(processor_obj, ProcessorABC):
@@ -210,8 +228,10 @@ def make_chunk_analysis(*, target: ChunkAnalysis, deps: Deps, out: Path) -> None
     out.write_text(
         json.dumps(
             {
+                "type": "ChunkAnalysis",
+                "tag": target.tag,
+                "part": target.part,
                 "payload": payload_path.name,
-                "summary": summary,
                 "chunk_files": files,
                 "parameters": target.keys(),
             },
@@ -219,94 +239,55 @@ def make_chunk_analysis(*, target: ChunkAnalysis, deps: Deps, out: Path) -> None
         )
     )
 
-
-
-def _scan_chunk_results(cache_root: Path, dataset: str, era: str, tag: str | None) -> List[Path]:
-    chunk_dir = cache_root / "ChunkAnalysis"
-    if not chunk_dir.exists():
-        return []
-
-    results: List[Path] = []
-    for result_path in chunk_dir.rglob("payload.json"):
-        try:
-            payload = json.loads(result_path.read_text())
-        except json.JSONDecodeError:
-            continue
-        if (
-            payload.get("dataset") == dataset
-            and payload.get("era") == era
-            and payload.get("tag") == tag
-        ):
-            results.append(payload)
-    return results
-
-
 @producer(MergedResult)
 def make_merged_result(*, target: MergedResult, deps: Deps, out: Path) -> None:
-    """
-    Merge available ChunkAnalysis outputs for the same dataset/era/(tag), if present.
+    inputs_info = []
+    outputs = []
 
-    This implementation:
-      - scans cache for ChunkAnalysis manifests
-      - loads each payload.pkl
-      - merges outputs (accumulate-style) if possible
-      - writes merged payload.pkl + merged manifest json
-    """
-    fileset_path = deps.need(target.fileset)
-    fileset_payload = json.loads(fileset_path.read_text())
-
-    dataset = fileset_payload["dataset"]
-    era = fileset_payload["era"]
-    tag = getattr(target, "tag", None)
-
-    
-    cache_root = out.parents[2]
-    
-    analysis_manifests = _scan_chunk_results(cache_root, dataset, era, tag)
-
-    outputs: List[Any] = []
-    used_parts: List[int] = []
-    for manifest_path in analysis_manifests:
+    for chunk in target.inputs:
+        manifest_path = deps.need(chunk)             
         manifest = json.loads(manifest_path.read_text())
+
         payload_name = manifest.get("payload", "payload.pkl")
         payload_path = manifest_path.parent / payload_name
         if not payload_path.exists():
-            continue
+            raise FileNotFoundError(f"Missing ChunkAnalysis payload: {payload_path}")
 
         with payload_path.open("rb") as f:
             outputs.append(cloudpickle.load(f))
 
-        if isinstance(manifest.get("part"), int):
-            used_parts.append(manifest["part"])
+        inputs_info.append({
+            "part": manifest.get("part"),
+            "tag": manifest.get("tag"),
+            "payload_json": str(manifest_path),
+            "payload_pkl": payload_name,
+            "n_files": len(manifest.get("chunk_files", [])),
+        })
 
-    merged_output: Any = None
+    merged_obj = None
+    merge_strategy = None
     if outputs:
         try:
             from coffea.processor.accumulator import accumulate
-            merged_output = accumulate(outputs)
+            merged_obj = accumulate(outputs)
+            merge_strategy = "coffea.accumulate"
         except Exception:
-            merged_output = outputs
+            merged_obj = outputs
+            merge_strategy = "list"
 
     merged_payload_path = out.parent / "payload.pkl"
     with merged_payload_path.open("wb") as f:
-        cloudpickle.dump(merged_output, f)
+        cloudpickle.dump(merged_obj, f)
 
-    out.write_text(
-        json.dumps(
-            {
-                "type": "MergedResult",
-                "dataset": dataset,
-                "era": era,
-                "tag": tag,
-                "n_parts": len(set(used_parts)) if used_parts else 0,
-                "parts": sorted(set(used_parts)) if used_parts else [],
-                "n_inputs": len(outputs),
-                "payload": merged_payload_path.name,
-                "parameters": target.keys(),
-            },
-            indent=2,
-        )
-    )
+    out.write_text(json.dumps({
+        "type": "MergedResult",
+        "tag": target.tag,
+        "merge_strategy": merge_strategy,
+        "n_inputs": len(outputs),
+        "inputs": inputs_info,
+        "payload": merged_payload_path.name,
+        "parameters": target.keys(),
+    }, indent=2))
 
 @producer(Plots)
 def make_plots(*, target: Plots, deps: Deps, out: Path) -> None:

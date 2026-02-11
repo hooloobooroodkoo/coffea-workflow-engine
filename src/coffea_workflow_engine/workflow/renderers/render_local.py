@@ -38,20 +38,28 @@ def _resolve_params(
     raw_params: Dict[str, Any],
     artifacts_by_name: Dict[str, Artifact],
 ) -> Dict[str, Any]:
+    def resolve_value(key: str, value: Any) -> Any:
+        if isinstance(value, dict) and "type" in value and ("key" in value or "keys" in value):
+            return artifact_from_dict(value)
+
+        # step name, for *_ref keys
+        if key.endswith("_ref") and isinstance(value, str) and value in artifacts_by_name:
+            return artifacts_by_name[value]
+
+        # resolve list or tuple
+        if isinstance(value, (list, tuple)):
+            resolved_items = [resolve_value(key, v) for v in value]
+            return type(value)(resolved_items)
+
+        return value
+
     resolved: Dict[str, Any] = {}
     for key, value in raw_params.items():
         target_key = key[:-4] if key.endswith("_ref") else key
+        resolved[target_key] = resolve_value(key, value)
 
-        if isinstance(value, dict) and "type" in value and ("key" in value or "keys" in value):
-            resolved[target_key] = artifact_from_dict(value)
-            continue
-
-        if key.endswith("_ref") and isinstance(value, str) and value in artifacts_by_name:
-            resolved[target_key] = artifacts_by_name[value]
-            continue
-
-        resolved[target_key] = value
     return resolved
+
 
 
 def _print_dag(workflow: Workflow) -> None:

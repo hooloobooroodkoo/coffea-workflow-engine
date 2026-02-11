@@ -58,9 +58,16 @@ class ArtifactBase:
 class Fileset(ArtifactBase):
     dataset: str
     era: str
+    builder: str = "" # uses function that user provides
+    builder_params: Dict[str, Any] = field(default_factory=dict)
 
     def keys(self) -> Mapping[str, Any]:
-        return {"dataset": self.dataset, "era": self.era}
+        return {
+            "dataset": self.dataset,
+            "era": self.era,
+            "builder": self.builder,
+            "builder_params": self.builder_params,
+        }
 
 
 @register_artifact
@@ -103,11 +110,14 @@ class ChunkAnalysis(ArtifactBase):
 @register_artifact
 @dataclass(frozen=True)
 class MergedResult(ArtifactBase):
-    fileset: Fileset
+    inputs: List[ChunkAnalysis, ...]
     tag: str
 
     def keys(self) -> Mapping[str, Any]:
-        return {"fileset": self.fileset.keys(), "tag": self.tag}
+        return {
+            "inputs": [i.keys() for i in self.inputs],
+            "tag": self.tag,
+        }
 
 
 @register_artifact
