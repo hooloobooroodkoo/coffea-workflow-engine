@@ -1,6 +1,9 @@
+"""
+This module materializes(produces) every artifact from a workflow dag.
+It calls predifened producer of the artifact and 
+"""
 from __future__ import annotations
 from pathlib import Path
-from typing import Any, Type
 
 from .artifacts import Artifact
 from .producers import get_producer

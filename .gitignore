@@ -23,3 +23,7 @@ env/
 
 # OS
 .DS_Store
+
+# generated workflow caches
+src/coffea_workflow_engine/examples/**/.cache_local/
+src/coffea_workflow_engine/examples/**/.snakemake/

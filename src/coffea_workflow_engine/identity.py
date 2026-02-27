@@ -16,6 +16,12 @@ def canonicalize(obj: Any) -> bytes:
                 return str(o)
         except Exception:
             pass
+        try:
+            from collections.abc import KeysView
+            if isinstance(o, KeysView):
+                return list(o)
+        except Exception:
+            pass
         raise TypeError(f"Not JSON serializable: {type(o)}")
 
     return json.dumps(

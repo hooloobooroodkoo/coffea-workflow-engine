@@ -1,0 +1,33 @@
+from pathlib import Path
+import math
+
+src = "lorem.txt"
+chunk_bytes = 200
+chunk_prefix = "chunk_"
+
+n_bytes = Path(src).read_bytes()
+n_chunks = (len(n_bytes) + chunk_bytes - 1) // chunk_bytes
+
+chunk_ids = [f"{i:03d}" for i in range(n_chunks)]
+chunk_prefixes = [f"chunks_inter_files/{chunk_prefix}{cid}.txt" for cid in chunk_ids]
+counts = [f"chunks_inter_files/counts_{cid}.json" for cid in chunk_ids]
+
+rule all:
+    input:
+        "letter_counts.json"
+
+rule split:
+    input: src
+    output: expand("{chunk_prefix}", chunk_prefix=chunk_prefixes)
+    params: chunk_bytes=chunk_bytes
+    script: "scripts/split.py"
+
+rule count_letters:
+    input:  "chunks_inter_files/chunk_{cid}.txt"
+    output: "chunks_inter_files/counts_{cid}.json"
+    script: "scripts/count_letters.py"
+
+rule merge_counts:
+    input: counts
+    output: "letter_counts.json"
+    script: "scripts/merge_counts.py"

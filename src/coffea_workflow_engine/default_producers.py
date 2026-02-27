@@ -7,15 +7,16 @@ from pathlib import Path
 from typing import Dict, List, Any
 import importlib
 import inspect
+import subprocess
 
 import cloudpickle
 
-from .artifacts import Fileset, Chunking, ChunkAnalysis, MergedResult, Plots
+from .artifacts import Fileset, Chunking, ChunkAnalysis, MergedResult, Plots, CustomArtifact
 from .deps import Deps
 from .producers import producer
 
 
-def _load_fileset_source() -> Dict[str, List[str]]:
+def _load_fileset_source():
     """
     load dataset->files list from a JSON file.
     The path is given by COFFEA_FILESET_JSON env var, otherwise ./filesets.json.
@@ -45,6 +46,90 @@ def _load_fileset_source() -> Dict[str, List[str]]:
         raise TypeError("filesets.json must contain a JSON object mapping dataset keys to file lists")
     return data
 
+def _resolve_custom_producer(name: str):
+    """
+    Resolve a custom producer for an artifact
+
+    The producer can be provided by the user as a function or as a script file:
+    - "module.submodule:function" or "module.submodule.function"
+    - "path/to/script.py" or "script.py"
+    """
+    if ":" in name or "." in name:
+        try:
+            return ("callable", _load_object(name))
+        except Exception:
+            pass
+
+    script_path = Path(name)
+    if script_path.suffix != ".py":
+        script_with_ext = Path(f"{name}.py")
+        if script_with_ext.exists():
+            script_path = script_with_ext
+
+    if script_path.exists() and script_path.is_file():
+        return ("script", script_path)
+
+    raise ValueError(
+        f"Unable to resolve custom producer '{name}'. "
+        "Use an import path (module:function) or a .py script path."
+    )
+    
+@producer(CustomArtifact)
+def make_custom_artifact(*, target: CustomArtifact, deps: Deps, out: Path) -> None:
+    
+    # as we don't know how many dependencies user artifact will have we need to go through all of them and materialize them
+    
+    dependency_payloads = {} # materialised artifacts
+    for dep in target.dependencies:
+        dependency_payloads[dep.identity()] = str(deps.need(dep))
+    
+
+    producer_kind, producer_obj = _resolve_custom_producer(target.producer_name)
+    payload_path = out.parent / "payload.pkl"
+
+    if producer_kind == "callable":
+        result = _call_with_accepted_kwargs(
+            producer_obj,
+            {
+                "target": target,
+                "params": target.params,
+                "dependencies": dependency_payloads,
+                "out_dir": out.parent,
+            },
+        )
+        with payload_path.open("wb") as f:
+            cloudpickle.dump(result, f)
+    else:
+        script_path: Path = producer_obj
+        args = [
+            "python",
+            str(script_path),
+            "--name",
+            target.name,
+            "--params-json",
+            json.dumps(target.params),
+            "--deps-json",
+            json.dumps(dependency_payloads),
+            "--out-dir",
+            str(out.parent),
+        ]
+        subprocess.run(args, check=True)
+
+    out.write_text(
+        json.dumps(
+            {
+                "type": "CustomArtifact",
+                "name": target.name,
+                "producer_name": target.producer_name,
+                "dependencies": dependency_payloads,
+                "params": target.params,
+                "payload": payload_path.name if payload_path.exists() else None,
+            },
+            indent=2,
+        )
+    )
+
+        
 
 @producer(Fileset)
 def make_fileset(*, target: Fileset, deps: Deps, out: Path) -> None:
@@ -119,7 +204,11 @@ def _fileset_from_list_payload(fileset_payload: Dict[str, Any], files: List[str]
 
 def _load_object(path: str) -> Any:
     """
-    Initiate an object
+    Initiate an object.
+    For example:
+    "builder": "utils.file_input:construct_fileset"
+    or
+    "processor": "processor:MyProcessor"
     """
     if ":" in path:
         mod_name, attr = path.split(":", 1)
@@ -131,7 +220,7 @@ def _load_object(path: str) -> Any:
     except AttributeError as e:
         raise AttributeError(f"Object '{attr}' not found in module '{mod_name}'") from e
 
-def _resolve_executor(executor: Optional[str], executor_params: Dict[str, Any]):
+def _resolve_executor(executor, executor_params):
     """
     TODO: implement support of  other executors. 
     """

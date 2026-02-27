@@ -1,22 +1,15 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Generic, Optional, Type, TypeVar
 
-from .artifacts import Artifact
 
-T = TypeVar("T", bound=Artifact)
+_PRODUCERS = {}
 
-ProducerFn = Callable[[T, "Deps"], Any]
-
-_PRODUCERS: Dict[Type[Artifact], Callable[..., Any]] = {}
-
-def producer(return_type: Type[T]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    def deco(fn: Callable[..., Any]) -> Callable[..., Any]:
+def producer(return_type):
+    def deco(fn):
         _PRODUCERS[return_type] = fn
         return fn
     return deco
 
-def get_producer(t: Type[T]) -> Callable[..., Any]:
+def get_producer(t):
     try:
         return _PRODUCERS[t]
     except KeyError:

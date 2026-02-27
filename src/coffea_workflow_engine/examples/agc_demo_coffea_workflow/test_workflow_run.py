@@ -72,8 +72,8 @@ step_merge = workflow.add(
     ),
     depends_on=analysis_steps,
 )
-
-config = cfg.Config(renderer="local", cache_dir=".cache")
+cache_dir_name = ".cache_local"
+config = cfg.Config(renderer="local", cache_dir=cache_dir_name)
 result = rnd.render(workflow, config)
 
 
@@ -87,14 +87,14 @@ import pprint
 import cloudpickle
 from pathlib import Path
 print("Intermediate results:\n")
-print("\nSTEP Fileset: .cache/Fileset/*/payload.json")
-for p in glob.glob(".cache/Fileset/*/payload.json"):
+print(f"\nSTEP Fileset: {cache_dir_name}/Fileset/*/payload.json")
+for p in glob.glob(f"{cache_dir_name}/Fileset/*/payload.json"):
     print(p)
     d = json.load(open(p))
     pprint.pprint(d)
     
-print("\nSTEP Chunking: .cache/Chunking/*/payload.json")
-for p in glob.glob(".cache/Chunking/*/payload.json"):
+print(f"\nSTEP Chunking: {cache_dir_name}/Chunking/*/payload.json")
+for p in glob.glob(f"{cache_dir_name}/Chunking/*/payload.json"):
     d = json.load(open(p))
     print("==", p)
     for part in d.get("parts", []):
@@ -104,8 +104,8 @@ import json, glob
 import cloudpickle
 from pathlib import Path
 
-print("\nSTEP ChunkAnalysis: .cache/ChunkAnalysis/*/payload.json")
-for p in glob.glob(".cache/ChunkAnalysis/*/payload.json"):
+print(f"\nSTEP ChunkAnalysis: {cache_dir_name}/ChunkAnalysis/*/payload.json")
+for p in glob.glob(f"{cache_dir_name}/ChunkAnalysis/*/payload.json"):
     print(p)
     d = json.load(open(p))
 
@@ -121,8 +121,8 @@ for p in glob.glob(".cache/ChunkAnalysis/*/payload.json"):
     print(f"part={d.get('part')}, tag={d.get('tag')}, nevents={chunk_nevents}\n")
 
 
-print("\nSTEP MergedResults: .cache/MergedResult/*/payload.json")
-for p in glob.glob(".cache/MergedResult/*/payload.json"):
+print(f"\nSTEP MergedResults: {cache_dir_name}/MergedResult/*/payload.json")
+for p in glob.glob(f"{cache_dir_name}/MergedResult/*/payload.json"):
     print(p)
     d = json.load(open(p))
 

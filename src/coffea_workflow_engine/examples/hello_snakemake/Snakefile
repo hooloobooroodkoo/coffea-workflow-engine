@@ -1,0 +1,53 @@
+###########################
+# This is a classic example taken from https://github.com/jperkel/Snakemake_example/blob/master/hello_world.smk
+# But reimplemented a bit to be mostly python scipts based
+###########################
+
+#
+# Snakefiles allow you to blend rules with Python code. This code constructs the 'Hello, world' message
+# and figures out how many temporary files will be needed to store it in the 'split' rule, and what their
+# names will be.
+#
+from pathlib import Path
+
+hello_string = "Hello, world, my name is"
+chunk_len = 6 # number of bytes per file chunk in rule 'split'
+tmpfile = "hello-world.tmp"
+
+with open("name.txt","r") as f:
+    name = f.readline() # read first line of name.txt
+
+# if there's a trailing carriage return, strip it out...
+name = name.strip()
+msg = hello_string + ' ' + name + '!'
+
+nFiles = int(len(msg)/chunk_len)+1
+letters = "abcdefghijklmnopqrstuvwxyz"
+chunks = ["a{letter}".format(letter = letter) for letter in letters[0:nFiles]]
+
+#
+# Rules.
+#
+rule all:
+    input:
+        "hello-world.txt"
+        
+rule clean:
+    shell:
+        "rm -f chunk_a* {tmpfile} hello-world.txt"
+
+rule helloworld:
+    output: tmpfile
+    params: msg=msg
+    script: "scripts/helloworld.py"
+
+rule split:
+    input: tmpfile
+    output: expand("chunk_{chunk}", chunk=chunks)
+    params: chunk_len=chunk_len
+    script: "scripts/split.py"     
+
+rule toupper:
+    input: expand("chunk_{chunk}", chunk=chunks)
+    output: "hello-world.txt"
+    script: "scripts/toupper.py"

@@ -1,0 +1,12 @@
+{
+  "chunks": [
+    "chunks_inter_files/chunk_000.txt",
+    "chunks_inter_files/chunk_001.txt",
+    "chunks_inter_files/chunk_002.txt",
+    "chunks_inter_files/chunk_003.txt",
+    "chunks_inter_files/chunk_004.txt",
+    "chunks_inter_files/chunk_005.txt",
+    "chunks_inter_files/chunk_006.txt"
+  ],
+  "n_chunks": 7
+}
