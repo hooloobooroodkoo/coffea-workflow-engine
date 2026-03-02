@@ -46,88 +46,30 @@ def _load_fileset_source():
         raise TypeError("filesets.json must contain a JSON object mapping dataset keys to file lists")
     return data
 
-def _resolve_custom_producer(name: str):
-    """
-    Resolve a custom producer for an artifact
+def import_callable(dotted: str):
+    mod, fn = dotted.split(":")
+    m = importlib.import_module(mod)
+    return getattr(m, fn)
 
-    The producer can be provided by the user as a function or as a script file:
-    - "module.submodule:function" or "module.submodule.function"
-    - "path/to/script.py" or "script.py"
-    """
-    if ":" in name or "." in name:
-        try:
-            return ("callable", _load_object(name))
-        except Exception:
-            pass
-
-    script_path = Path(name)
-    if script_path.suffix != ".py":
-        script_with_ext = Path(f"{name}.py")
-        if script_with_ext.exists():
-            script_path = script_with_ext
-
-    if script_path.exists() and script_path.is_file():
-        return ("script", script_path)
-
-    raise ValueError(
-        f"Unable to resolve custom producer '{name}'. "
-        "Use an import path (module:function) or a .py script path."
-    )
-    
 @producer(CustomArtifact)
-def make_custom_artifact(*, target: CustomArtifact, deps: Deps, out: Path) -> None:
-    
-    # as we don't know how many dependencies user artifact will have we need to go through all of them and materialize them
-    
-    dependency_payloads = {} # materialised artifacts
-    for dep in target.dependencies:
-        dependency_payloads[dep.identity()] = str(deps.need(dep))
-    
+def run_custom_artifact(*, producer_name: str, params: Dict[str, Any], out_dir: Path) -> Dict[str, Any]:
+    """
+    Calls producer_name(**params) and writes payload.json.
+    If the producer returns a dict, store it as payload["result"].
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    producer_kind, producer_obj = _resolve_custom_producer(target.producer_name)
-    payload_path = out.parent / "payload.pkl"
+    fn = import_callable(producer_name)
+    result = fn(**params)
 
-    if producer_kind == "callable":
-        result = _call_with_accepted_kwargs(
-            producer_obj,
-            {
-                "target": target,
-                "params": target.params,
-                "dependencies": dependency_payloads,
-                "out_dir": out.parent,
-            },
-        )
-        with payload_path.open("wb") as f:
-            cloudpickle.dump(result, f)
-    else:
-        script_path: Path = producer_obj
-        args = [
-            "python",
-            str(script_path),
-            "--name",
-            target.name,
-            "--params-json",
-            json.dumps(target.params),
-            "--deps-json",
-            json.dumps(dependency_payloads),
-            "--out-dir",
-            str(out.parent),
-        ]
-        subprocess.run(args, check=True)
+    payload: Dict[str, Any] = {
+        "producer": producer_name,
+        "params": params,
+        "result": result if isinstance(result, dict) else None,
+    }
 
-    out.write_text(
-        json.dumps(
-            {
-                "type": "CustomArtifact",
-                "name": target.name,
-                "producer_name": target.producer_name,
-                "dependencies": dependency_payloads,
-                "params": target.params,
-                "payload": payload_path.name if payload_path.exists() else None,
-            },
-            indent=2,
-        )
-    )
+    (out_dir / "payload.json").write_text(json.dumps(payload, indent=2, sort_keys=True))
+    return payload
 
         
 

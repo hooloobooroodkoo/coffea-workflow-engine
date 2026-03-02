@@ -1,3 +1,31 @@
+"""
+If I want to use the same simple scripts from lorem ananlysis I'm using in snakemake and luigi examples
+my workflow still lacks for now 1) understanding what the previous step has produced.
+Example:
+    Step split produced files with cjunks of text, but next step doesn't know that output rn.
+What I want:
+    Users should be able to say: “call this Python function with these arguments”, where arguments can reference dependencies and outputs.
+"""
+
+"""
+Idea, pre-implemented BatchesProcessing step:
+
+def make_batches(input, mode, batch_size=optional):
+    read_input()
+    
+    if mode == "per_chunk":
+        batches = [[cid] for cid in ids]
+        
+    elif mode == "all":
+        batches = [ids]
+        
+    elif mode == "grouped":
+        batches = [ids[i:i+batch_size] for i in range(0, len(ids), batch_size)]
+    else:
+        raise ValueError(mode)
+
+    return path_to_batches
+"""
 from __future__ import annotations
 
 import json
@@ -10,50 +38,9 @@ import coffea_workflow_engine.workflow.render as rnd
 
 from coffea_workflow_engine.artifacts import CustomArtifact
 
-from scripts.split import split_file
-from scripts.count_letters import count_letters_file
-from scripts.merge_counts import merge_counts
-
-
-def _artifact_dir_from_payload(payload_path: str) -> Path:
-    return Path(payload_path).parent
-
-
-def _load_payload(payload_path: str) -> Dict[str, Any]:
-    return json.loads(Path(payload_path).read_text())
-
-
-def count_entrypoint(*, params: Dict[str, Any], deps: Dict[str, Any], out: Path) -> None:
-    split_dep = deps["split"]
-    split_payload = _load_payload(split_dep["path"])
-    split_art_dir = _artifact_dir_from_payload(split_dep["path"])
-
-    outputs = split_payload.get("outputs", {}) or {}
-    chunks_dir = split_art_dir / outputs.get("chunks_dir", "chunks")
-
-    chunk_prefix = params.get("chunk_prefix", "chunk_")
-    chunk_id = params["chunk_id"]
-    chunk_path = chunks_dir / f"{chunk_prefix}{chunk_id}.txt"
-
-    out_path = out / "counts.json"
-    count_letters_file(str(chunk_path), str(out_path))
-
-
-def merge_entrypoint(*, params: Dict[str, Any], deps: Dict[str, Any], out: Path) -> None:
-    count_deps = deps["counts"]
-    count_files: List[str] = []
-
-    for item in count_deps:
-        payload_path = item["path"]
-        payload = _load_payload(payload_path)
-        art_dir = _artifact_dir_from_payload(payload_path)
-        outputs = payload.get("outputs", {}) or {}
-        counts_name = outputs.get("counts", "counts.json")
-        count_files.append(str(art_dir / counts_name))
-
-    out_file = out / "letter_counts.json"
-    merge_counts(count_files, str(out_file))
-
+# from scripts.split import split_file
+# from scripts.count_letters import count_letters_file
+# from scripts.merge_counts import merge_counts
 
 def build_workflow() -> mdl.Workflow:
     workflow = mdl.Workflow()
@@ -63,18 +50,14 @@ def build_workflow() -> mdl.Workflow:
             name="split",
             step_type=CustomArtifact,
             params={
-                "name": "split",
-                "producer": "coffea_workflow_engine.examples.scripts.split:split_file",
-                "params": {
+                "producer": "scripts.split:split_file",
+                "args": {
                     "src": "lorem.txt",
                     "chunk_bytes": 200,
-                    "dir": "chunks_inter_files",
-                    "manifest_path": "split_manifest.json",
+                    "out_dir": "chunks_inter_files",
+                    "chunk_files": "chunk_{i:03d}.txt",
                 },
-                "outputs": {
-                    "manifest": "split_manifest.json",
-                    "chunks_dir": "chunks_inter_files",
-                },
+                "outputs": {"out_dir": "chunks_inter_files"},
             },
         )
     )
@@ -84,32 +67,31 @@ def build_workflow() -> mdl.Workflow:
             name="count",
             step_type=CustomArtifact,
             params={
-                "name": "count",
-                "producer": "coffea_workflow_engine.examples.lorem_local_workflow:count_entrypoint",
-                "params": {
-                    "split_ref": "split",
-                    "chunk_prefix": "chunk_",
+                "producer": "scripts.count_letters:count_letters_file",
+                
+                # use some parameters that will define the batch processing approach: each seperate chunk? batches? one batch?
+                "foreach": {"dep": "split", "path": "chunks_inter_files.chunk_files", "as": "chunk_file"}, #let's assume each is processed seperately
+
+                "args": {
+                    #???? are they already in for each or should something else be here
                 },
-                "outputs": {"counts_dir": "counts_by_chunk"},
+
+                # per-item output name (in that item’s artifact directory, or in a shared dir)
+                "outputs": {"counts_file": "chunk_counts_{cid}.json"},
             },
         ),
         depends_on=[split_step],
     )
+
 
     merge_step = workflow.add(
         mdl.Step(
             name="merge",
             step_type=CustomArtifact,
             params={
-                "name": "merge",
-                "producer": "coffea_workflow_engine.examples.lorem_local_workflow:merge_entrypoint",
-                "params": {
-                    "counts_ref": [s.name for s in count_step],
-                },
-                "outputs": {"merged": "letter_counts.json"},
             },
         ),
-        depends_on=count_steps,
+        depends_on=[count_step],
     )
 
     return workflow

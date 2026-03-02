@@ -69,10 +69,6 @@ class ArtifactBase:
 @register_artifact
 @dataclass(frozen=True)
 class CustomArtifact(ArtifactBase):
-    """
-    Generic artifact that delegates production to a user-provided callable/script name.
-    """
-
     name: str
     producer_name: str
     params: Dict[str, Any] = field(default_factory=dict)
@@ -83,7 +79,7 @@ class CustomArtifact(ArtifactBase):
             "name": self.name,
             "producer_name": self.producer_name,
             "params": self.params,
-            "dependencies": [dep.keys() for dep in self.dependencies],
+            "dependencies": [dep.identity() for dep in self.dependencies],
         }
 
 @register_artifact
